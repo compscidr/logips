@@ -1,6 +1,6 @@
 [versions]
 jupiter = "5.11.3"
-kotlin = "2.0.21"
+kotlin = "2.1.0"
 kotlinter = "5.0.1"
 mockk = "1.13.13"
 slf4j = "2.0.16"
