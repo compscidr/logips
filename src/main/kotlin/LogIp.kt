@@ -6,7 +6,7 @@ import java.net.SocketException
 object LogIp {
     val defaultExcludeInterfaces = listOf("docker", "virbr", "veth", "tailscale", "dummy", "tun", "lo")
 
-    fun logAllIPAddresses(
+    fun logAllIpAddresses(
         logger: Logger = LoggerFactory.getLogger(LogIp::class.java),
         excludeInterfaces: List<String> = defaultExcludeInterfaces,
         excludeDownInterfaces: Boolean = false,
