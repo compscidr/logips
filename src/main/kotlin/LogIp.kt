@@ -1,3 +1,4 @@
+import java.net.NetworkInterface
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.net.SocketException
@@ -8,42 +9,19 @@ object LogIp {
     fun logAllIPAddresses(
         logger: Logger = LoggerFactory.getLogger(LogIp::class.java),
         excludeInterfaces: List<String> = defaultExcludeInterfaces,
+        excludeDownInterfaces: Boolean = false,
     ) {
-        try {
-            val interfaces = java.net.NetworkInterface.getNetworkInterfaces()
-            if (interfaces == null) {
-                logger.error("No network interfaces found")
-                return
-            }
-            for (networkInterface in interfaces) {
-                var excluded = false
-                for (excludeInterface in excludeInterfaces) {
-                    if (networkInterface.displayName.contains(excludeInterface)) {
-                        excluded = true
-                        break
-                    }
-                }
-                if (excluded) {
-                    continue
-                }
-                if (networkInterface.isUp.not()) {
-                    continue
-                }
-                val addresses = networkInterface.inetAddresses.toList()
-                if (addresses.isEmpty()) {
-                    continue
-                }
-                logger.trace("Network Interface: ${networkInterface.name}")
-                if (addresses.isEmpty()) {
-                    logger.trace("  No IP Addresses")
-                    continue
-                }
-                for (inetAddress in addresses) {
-                    logger.trace("  IP Address: ${inetAddress.hostAddress}")
+        val interfaceNameMap = getInterfaceNameAddressMap(logger, excludeInterfaces, excludeDownInterfaces)
+        for (interfaceName in interfaceNameMap.keys) {
+            logger.debug("Interface $interfaceName")
+            val ipAddresses = interfaceNameMap[interfaceName]
+            if (ipAddresses == null) {
+                logger.debug("  No ips")
+            } else {
+                for (ipAddress in ipAddresses) {
+                    logger.debug("  IP $ipAddress")
                 }
             }
-        } catch (e: SocketException) {
-            logger.error("Error getting network interfaces", e)
         }
     }
 
@@ -52,49 +30,38 @@ object LogIp {
         excludeInterfaces: List<String> = defaultExcludeInterfaces,
         excludeDownInterfaces: Boolean = true,
     ): List<String> {
-        val addresses = mutableListOf<String>()
-        try {
-            val interfaces = java.net.NetworkInterface.getNetworkInterfaces()
-            if (interfaces == null) {
-                logger.warn("No network interfaces found")
-                return addresses
+        val addresses = ArrayList<String>()
+        val interfaces = getInterfaces(logger, excludeInterfaces, excludeDownInterfaces)
+        interfaces.forEach {
+            val inetAddresses = it.inetAddresses.toList()
+            for (inetAddress in inetAddresses) {
+                addresses.add(inetAddress.hostAddress)
             }
-            for (networkInterface in interfaces) {
-                var excluded = false
-                for (excludeInterface in excludeInterfaces) {
-                    if (networkInterface.displayName.contains(excludeInterface)) {
-                        excluded = true
-                        break
-                    }
-                }
-                if (excluded) {
-                    continue
-                }
-                if (networkInterface.isUp.not() && excludeDownInterfaces) {
-                    continue
-                }
-                val inetAddresses = networkInterface.inetAddresses.toList()
-                if (inetAddresses.isEmpty()) {
-                    continue
-                }
-                for (inetAddress in inetAddresses) {
-                    addresses.add(inetAddress.hostAddress)
-                }
-            }
-        } catch (e: SocketException) {
-            logger.error("Error getting network interfaces", e)
         }
         return addresses
+    }
+
+    fun getInterfaceNames(
+        logger: Logger = LoggerFactory.getLogger(LogIp::class.java),
+        excludeInterfaces: List<String> = defaultExcludeInterfaces,
+        excludeDownInterfaces: Boolean = true,
+    ): List<String> {
+        val interfaces = getInterfaces(logger, excludeInterfaces, excludeDownInterfaces)
+        val interfaceNames = mutableListOf<String>()
+        interfaces.forEach {
+            interfaceNames.add(it.name)
+        }
+        return interfaceNames
     }
 
     fun getInterfaces(
         logger: Logger = LoggerFactory.getLogger(LogIp::class.java),
         excludeInterfaces: List<String> = defaultExcludeInterfaces,
         excludeDownInterfaces: Boolean = true,
-    ): List<String> {
-        val interfaceList = mutableListOf<String>()
+    ): List<NetworkInterface> {
+        val interfaceList = mutableListOf<NetworkInterface>()
         try {
-            val interfaces = java.net.NetworkInterface.getNetworkInterfaces()
+            val interfaces = NetworkInterface.getNetworkInterfaces()
             if (interfaces == null) {
                 logger.warn("No network interfaces found")
                 return interfaceList
@@ -113,7 +80,7 @@ object LogIp {
                 if (networkInterface.isUp.not() && excludeDownInterfaces) {
                     continue
                 }
-                interfaceList.add(networkInterface.name)
+                interfaceList.add(networkInterface)
             }
         } catch (e: SocketException) {
             logger.error("Error getting network interfaces", e)
@@ -121,37 +88,16 @@ object LogIp {
         return interfaceList
     }
 
-    fun getInterfaceAddressMap(
+    fun getInterfaceNameAddressMap(
         logger: Logger = LoggerFactory.getLogger(LogIp::class.java),
         excludeInterfaces: List<String> = defaultExcludeInterfaces,
         excludeDownInterfaces: Boolean = true,
     ): Map<String, List<String>> {
         val interfaceAddressMap = mutableMapOf<String, List<String>>()
-        try {
-            val interfaces = java.net.NetworkInterface.getNetworkInterfaces()
-            if (interfaces == null) {
-                logger.warn("No network interfaces found")
-                return interfaceAddressMap
-            }
-            for (networkInterface in interfaces) {
-                var excluded = false
-                for (excludeInterface in excludeInterfaces) {
-                    if (networkInterface.displayName.contains(excludeInterface)) {
-                        excluded = true
-                        break
-                    }
-                }
-                if (excluded) {
-                    continue
-                }
-                if (networkInterface.isUp.not() && excludeDownInterfaces) {
-                    continue
-                }
-                val inetAddresses = networkInterface.inetAddresses.toList()
-                interfaceAddressMap[networkInterface.name] = inetAddresses.map { it.hostAddress }
-            }
-        } catch (e: SocketException) {
-            logger.error("Error getting network interfaces", e)
+        val interfaces = getInterfaces(logger, excludeInterfaces, excludeDownInterfaces)
+        interfaces.forEach { netIf ->
+            val inetAddresses = netIf.inetAddresses.toList()
+            interfaceAddressMap[netIf.name] = inetAddresses.map { it.hostAddress }
         }
         return interfaceAddressMap
     }

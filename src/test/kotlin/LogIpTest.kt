@@ -1,3 +1,4 @@
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -18,8 +19,13 @@ class LogIpTest {
         assertTrue(interfaces.isNotEmpty())
     }
 
+    @Test fun getInterfaceNames() {
+        val interfaceNames = LogIp.getInterfaceNames(excludeInterfaces = emptyList())
+        assertTrue(interfaceNames.contains("lo"))
+    }
+
     @Test fun getInterfaceAddressMap() {
-        val map = LogIp.getInterfaceAddressMap(excludeInterfaces = listOf("lo"))
-        assertTrue(map.containsKey("lo").not())
+        val map = LogIp.getInterfaceNameAddressMap(excludeInterfaces = listOf("lo"))
+        assertFalse(map.containsKey("lo"))
     }
 }
