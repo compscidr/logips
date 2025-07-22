@@ -6,6 +6,19 @@ import java.net.SocketException
 object LogIp {
     val defaultExcludeInterfaces = listOf("docker", "virbr", "veth", "tailscale", "dummy", "tun", "lo")
 
+    /**
+     * Helper function to check if a network interface matches a given pattern.
+     * Checks both the displayName and name properties of the interface.
+     *
+     * @param networkInterface The network interface to check
+     * @param pattern The pattern to match against
+     * @return true if either displayName or name contains the pattern
+     */
+    private fun matchesInterfacePattern(
+        networkInterface: NetworkInterface,
+        pattern: String,
+    ): Boolean = networkInterface.displayName.contains(pattern) || networkInterface.name.contains(pattern)
+
     fun logAllIpAddresses(
         logger: Logger = LoggerFactory.getLogger(LogIp::class.java),
         excludeInterfaces: List<String> = defaultExcludeInterfaces,
@@ -69,9 +82,7 @@ object LogIp {
             for (networkInterface in interfaces) {
                 var excluded = false
                 for (excludeInterface in excludeInterfaces) {
-                    if (networkInterface.displayName.contains(excludeInterface) ||
-                        networkInterface.name.contains(excludeInterface)
-                    ) {
+                    if (matchesInterfacePattern(networkInterface, excludeInterface)) {
                         logger.debug(
                             "Excluding interface ${networkInterface.name} (${networkInterface.displayName}) - matches exclusion pattern '$excludeInterface'",
                         )
@@ -124,9 +135,7 @@ object LogIp {
             for (networkInterface in interfaces) {
                 var matched = false
                 for (includeInterface in includeInterfaces) {
-                    if (networkInterface.displayName.contains(includeInterface) ||
-                        networkInterface.name.contains(includeInterface)
-                    ) {
+                    if (matchesInterfacePattern(networkInterface, includeInterface)) {
                         logger.debug(
                             "Interface ${networkInterface.name} (${networkInterface.displayName}) matches inclusion pattern '$includeInterface'",
                         )

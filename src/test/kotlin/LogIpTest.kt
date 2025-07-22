@@ -119,10 +119,10 @@ class LogIpTest {
             logger.debug("P2P pattern test: interface '$testInterfaceName' contains 'p2p': $containsP2p")
         }
 
-        // Get all available interfaces and log them for debugging
-        val allInterfaces = LogIp.getInterfaces(excludeInterfaces = emptyList(), excludeDownInterfaces = false)
+        // Get all available interfaces and cache them to avoid multiple calls (performance optimization)
+        val cachedInterfaces = LogIp.getInterfaces(excludeInterfaces = emptyList(), excludeDownInterfaces = false)
         logger.info("All available interfaces:")
-        allInterfaces.forEach { netInterface ->
+        cachedInterfaces.forEach { netInterface ->
             logger.info("  Interface name: '${netInterface.name}', displayName: '${netInterface.displayName}'")
         }
 
@@ -154,7 +154,7 @@ class LogIpTest {
         }
 
         // Test partial matching with available interfaces to ensure the fix works correctly
-        allInterfaces.forEach { netInterface ->
+        cachedInterfaces.forEach { netInterface ->
             val interfaceName = netInterface.name
             if (interfaceName.length >= 2) {
                 // Use first 2 characters as search pattern
