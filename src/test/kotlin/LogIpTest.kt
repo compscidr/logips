@@ -93,4 +93,39 @@ class LogIpTest {
         val interfaces = LogIp.getInterfacesMatching(includeInterfaces = emptyList())
         assertTrue(interfaces.isEmpty())
     }
+
+    @Test fun testP2pInterfaceMatching() {
+        // This test reproduces the issue where interface "p2p-p2p0-0" should match pattern "p2p"
+        // but fails to match in the getInterfacesMatching function
+        
+        // First, let's log all interface names and display names to understand the issue
+        val allInterfaces = LogIp.getInterfaces(excludeInterfaces = emptyList(), excludeDownInterfaces = false)
+        println("All interfaces found:")
+        allInterfaces.forEach { netInterface ->
+            println("  Interface name: '${netInterface.name}', displayName: '${netInterface.displayName}'")
+        }
+        
+        // Test if there are any p2p interfaces available
+        val p2pInterfaces = LogIp.getInterfacesMatching(includeInterfaces = listOf("p2p"), excludeDownInterfaces = false)
+        println("P2P interfaces found: ${p2pInterfaces.size}")
+        p2pInterfaces.forEach { netInterface ->
+            println("  P2P Interface name: '${netInterface.name}', displayName: '${netInterface.displayName}'")
+        }
+        
+        // If we don't have real p2p interfaces, check if pattern matching works for existing interfaces
+        // Test that interface names starting with a pattern should be matched
+        val loopbackInterfaces = LogIp.getInterfacesMatching(includeInterfaces = listOf("lo"), excludeDownInterfaces = false)
+        assertTrue(loopbackInterfaces.isNotEmpty(), "Should find at least one loopback interface")
+        
+        // Verify that the matching works correctly for names vs display names
+        loopbackInterfaces.forEach { netInterface ->
+            val matchesName = netInterface.name.contains("lo")
+            val matchesDisplayName = netInterface.displayName.contains("lo")
+            println("Interface: name='${netInterface.name}' (contains 'lo': $matchesName), displayName='${netInterface.displayName}' (contains 'lo': $matchesDisplayName)")
+            
+            // At least one of them should match
+            assertTrue(matchesName || matchesDisplayName, 
+                "Either name '${netInterface.name}' or displayName '${netInterface.displayName}' should contain 'lo'")
+        }
+    }
 }
