@@ -6,20 +6,33 @@ import java.net.SocketException
 object LogIp {
     val defaultExcludeInterfaces = listOf("docker", "virbr", "veth", "tailscale", "dummy", "tun", "lo")
 
+    /**
+     * Helper function to check if a network interface matches a given pattern.
+     * Checks both the displayName and name properties of the interface.
+     *
+     * @param networkInterface The network interface to check
+     * @param pattern The pattern to match against
+     * @return true if either displayName or name contains the pattern
+     */
+    private fun matchesInterfacePattern(
+        networkInterface: NetworkInterface,
+        pattern: String,
+    ): Boolean = networkInterface.displayName.contains(pattern) || networkInterface.name.contains(pattern)
+
     fun logAllIpAddresses(
         logger: Logger = LoggerFactory.getLogger(LogIp::class.java),
         excludeInterfaces: List<String> = defaultExcludeInterfaces,
         excludeDownInterfaces: Boolean = false,
     ) {
-        val interfaceNameMap = getInterfaceNameAddressMap(logger, excludeInterfaces, excludeDownInterfaces)
-        for (interfaceName in interfaceNameMap.keys) {
-            logger.debug("Interface $interfaceName")
-            val ipAddresses = interfaceNameMap[interfaceName]
-            if (ipAddresses == null) {
+        val interfaces = getInterfaces(logger, excludeInterfaces, excludeDownInterfaces)
+        for (networkInterface in interfaces) {
+            logger.debug("Interface ${networkInterface.name} (${networkInterface.displayName})")
+            val inetAddresses = networkInterface.inetAddresses.toList()
+            if (inetAddresses.isEmpty()) {
                 logger.debug("  No ips")
             } else {
-                for (ipAddress in ipAddresses) {
-                    logger.debug("  IP $ipAddress")
+                for (inetAddress in inetAddresses) {
+                    logger.debug("  IP ${inetAddress.hostAddress}")
                 }
             }
         }
@@ -69,7 +82,10 @@ object LogIp {
             for (networkInterface in interfaces) {
                 var excluded = false
                 for (excludeInterface in excludeInterfaces) {
-                    if (networkInterface.displayName.contains(excludeInterface)) {
+                    if (matchesInterfacePattern(networkInterface, excludeInterface)) {
+                        logger.debug(
+                            "Excluding interface ${networkInterface.name} (${networkInterface.displayName}) - matches exclusion pattern '$excludeInterface'",
+                        )
                         excluded = true
                         break
                     }
@@ -78,8 +94,10 @@ object LogIp {
                     continue
                 }
                 if (networkInterface.isUp.not() && excludeDownInterfaces) {
+                    logger.debug("Excluding interface ${networkInterface.name} (${networkInterface.displayName}) - interface is down")
                     continue
                 }
+                logger.debug("Including interface ${networkInterface.name} (${networkInterface.displayName})")
                 interfaceList.add(networkInterface)
             }
         } catch (e: SocketException) {
@@ -117,17 +135,27 @@ object LogIp {
             for (networkInterface in interfaces) {
                 var matched = false
                 for (includeInterface in includeInterfaces) {
-                    if (networkInterface.displayName.contains(includeInterface)) {
+                    if (matchesInterfacePattern(networkInterface, includeInterface)) {
+                        logger.debug(
+                            "Interface ${networkInterface.name} (${networkInterface.displayName}) matches inclusion pattern '$includeInterface'",
+                        )
                         matched = true
                         break
                     }
                 }
                 if (!matched) {
+                    logger.debug(
+                        "Skipping interface ${networkInterface.name} (${networkInterface.displayName}) - no matching inclusion pattern",
+                    )
                     continue
                 }
                 if (networkInterface.isUp.not() && excludeDownInterfaces) {
+                    logger.debug(
+                        "Excluding matched interface ${networkInterface.name} (${networkInterface.displayName}) - interface is down",
+                    )
                     continue
                 }
+                logger.debug("Including matched interface ${networkInterface.name} (${networkInterface.displayName})")
                 interfaceList.add(networkInterface)
             }
         } catch (e: SocketException) {

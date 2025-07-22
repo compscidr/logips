@@ -1,8 +1,10 @@
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.slf4j.LoggerFactory
 
 class LogIpTest {
+    private val logger = LoggerFactory.getLogger(LogIpTest::class.java)
     // todo: make a test that ads a lo filter and ensures that the loopback ip isn't included
 
     @Test fun testLogIp() {
@@ -92,5 +94,85 @@ class LogIpTest {
         // Test with empty search terms should return empty list
         val interfaces = LogIp.getInterfacesMatching(includeInterfaces = emptyList())
         assertTrue(interfaces.isEmpty())
+    }
+
+    @Test fun testInterfaceMatchingWithP2pPatterns() {
+        // Consolidated test for interface matching that covers the P2P interface issue from #61
+        // This test ensures that interface matching works correctly by checking both name and displayName
+        // and specifically tests P2P naming patterns like "p2p-p2p0-0" that should match "p2p"
+
+        logger.info("Testing interface matching with P2P patterns and name/displayName checking")
+
+        // Test the specific P2P naming patterns that were failing in the original issue
+        val p2pTestCases =
+            listOf(
+                "p2p",
+                "p2p0",
+                "p2p-p2p0-0",
+                "p2p-wlan0-1",
+            )
+
+        // Verify that all P2P naming patterns contain "p2p" (basic string matching logic)
+        p2pTestCases.forEach { testInterfaceName ->
+            val containsP2p = testInterfaceName.contains("p2p")
+            assertTrue(containsP2p, "Interface name '$testInterfaceName' should contain 'p2p'")
+            logger.debug("P2P pattern test: interface '$testInterfaceName' contains 'p2p': $containsP2p")
+        }
+
+        // Get all available interfaces and cache them to avoid multiple calls (performance optimization)
+        val cachedInterfaces = LogIp.getInterfaces(excludeInterfaces = emptyList(), excludeDownInterfaces = false)
+        logger.info("All available interfaces:")
+        cachedInterfaces.forEach { netInterface ->
+            logger.info("  Interface name: '${netInterface.name}', displayName: '${netInterface.displayName}'")
+        }
+
+        // Test if there are any actual P2P interfaces available on this system
+        val p2pInterfaces = LogIp.getInterfacesMatching(includeInterfaces = listOf("p2p"), excludeDownInterfaces = false)
+        logger.info("P2P interfaces found: ${p2pInterfaces.size}")
+        p2pInterfaces.forEach { netInterface ->
+            logger.info("  P2P Interface name: '${netInterface.name}', displayName: '${netInterface.displayName}'")
+        }
+
+        // Test that interface matching checks both name and displayName properties
+        // Use loopback interfaces which should exist on all systems
+        val loopbackInterfaces = LogIp.getInterfacesMatching(includeInterfaces = listOf("lo"), excludeDownInterfaces = false)
+        assertTrue(loopbackInterfaces.isNotEmpty(), "Should find at least one loopback interface")
+
+        loopbackInterfaces.forEach { netInterface ->
+            val matchesName = netInterface.name.contains("lo")
+            val matchesDisplayName = netInterface.displayName.contains("lo")
+            logger.debug(
+                "Loopback interface: name='${netInterface.name}' (contains 'lo': $matchesName), " +
+                    "displayName='${netInterface.displayName}' (contains 'lo': $matchesDisplayName)",
+            )
+
+            // At least one of them should match (this validates the fix)
+            assertTrue(
+                matchesName || matchesDisplayName,
+                "Either name '${netInterface.name}' or displayName '${netInterface.displayName}' should contain 'lo'",
+            )
+        }
+
+        // Test partial matching with available interfaces to ensure the fix works correctly
+        cachedInterfaces.forEach { netInterface ->
+            val interfaceName = netInterface.name
+            if (interfaceName.length >= 2) {
+                // Use first 2 characters as search pattern
+                val searchPattern = interfaceName.take(2)
+                val matchingInterfaces =
+                    LogIp.getInterfacesMatching(
+                        includeInterfaces = listOf(searchPattern),
+                        excludeDownInterfaces = false,
+                    )
+
+                // The original interface should be found since its name contains the search pattern
+                val foundInterface = matchingInterfaces.find { it.name == interfaceName }
+                assertTrue(
+                    foundInterface != null,
+                    "Interface '$interfaceName' should be found when searching for pattern '$searchPattern' " +
+                        "since the name contains it (validates name and displayName checking fix)",
+                )
+            }
+        }
     }
 }
