@@ -69,7 +69,9 @@ object LogIp {
             for (networkInterface in interfaces) {
                 var excluded = false
                 for (excludeInterface in excludeInterfaces) {
-                    if (networkInterface.displayName.contains(excludeInterface)) {
+                    if (networkInterface.displayName.contains(excludeInterface) ||
+                        networkInterface.name.contains(excludeInterface)
+                    ) {
                         excluded = true
                         break
                     }
@@ -117,7 +119,9 @@ object LogIp {
             for (networkInterface in interfaces) {
                 var matched = false
                 for (includeInterface in includeInterfaces) {
-                    if (networkInterface.displayName.contains(includeInterface)) {
+                    if (networkInterface.displayName.contains(includeInterface) ||
+                        networkInterface.name.contains(includeInterface)
+                    ) {
                         matched = true
                         break
                     }
