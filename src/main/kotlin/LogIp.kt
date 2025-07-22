@@ -72,7 +72,9 @@ object LogIp {
                     if (networkInterface.displayName.contains(excludeInterface) ||
                         networkInterface.name.contains(excludeInterface)
                     ) {
-                        logger.debug("Excluding interface ${networkInterface.name} (${networkInterface.displayName}) - matches exclusion pattern '$excludeInterface'")
+                        logger.debug(
+                            "Excluding interface ${networkInterface.name} (${networkInterface.displayName}) - matches exclusion pattern '$excludeInterface'",
+                        )
                         excluded = true
                         break
                     }
@@ -125,17 +127,23 @@ object LogIp {
                     if (networkInterface.displayName.contains(includeInterface) ||
                         networkInterface.name.contains(includeInterface)
                     ) {
-                        logger.debug("Interface ${networkInterface.name} (${networkInterface.displayName}) matches inclusion pattern '$includeInterface'")
+                        logger.debug(
+                            "Interface ${networkInterface.name} (${networkInterface.displayName}) matches inclusion pattern '$includeInterface'",
+                        )
                         matched = true
                         break
                     }
                 }
                 if (!matched) {
-                    logger.debug("Skipping interface ${networkInterface.name} (${networkInterface.displayName}) - no matching inclusion pattern")
+                    logger.debug(
+                        "Skipping interface ${networkInterface.name} (${networkInterface.displayName}) - no matching inclusion pattern",
+                    )
                     continue
                 }
                 if (networkInterface.isUp.not() && excludeDownInterfaces) {
-                    logger.debug("Excluding matched interface ${networkInterface.name} (${networkInterface.displayName}) - interface is down")
+                    logger.debug(
+                        "Excluding matched interface ${networkInterface.name} (${networkInterface.displayName}) - interface is down",
+                    )
                     continue
                 }
                 logger.debug("Including matched interface ${networkInterface.name} (${networkInterface.displayName})")
