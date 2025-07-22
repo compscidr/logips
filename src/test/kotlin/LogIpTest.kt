@@ -1,8 +1,10 @@
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.slf4j.LoggerFactory
 
 class LogIpTest {
+    private val logger = LoggerFactory.getLogger(LogIpTest::class.java)
     // todo: make a test that ads a lo filter and ensures that the loopback ip isn't included
 
     @Test fun testLogIp() {
