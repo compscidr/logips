@@ -11,15 +11,15 @@ object LogIp {
         excludeInterfaces: List<String> = defaultExcludeInterfaces,
         excludeDownInterfaces: Boolean = false,
     ) {
-        val interfaceNameMap = getInterfaceNameAddressMap(logger, excludeInterfaces, excludeDownInterfaces)
-        for (interfaceName in interfaceNameMap.keys) {
-            logger.debug("Interface $interfaceName")
-            val ipAddresses = interfaceNameMap[interfaceName]
-            if (ipAddresses == null) {
+        val interfaces = getInterfaces(logger, excludeInterfaces, excludeDownInterfaces)
+        for (networkInterface in interfaces) {
+            logger.debug("Interface ${networkInterface.name} (${networkInterface.displayName})")
+            val inetAddresses = networkInterface.inetAddresses.toList()
+            if (inetAddresses.isEmpty()) {
                 logger.debug("  No ips")
             } else {
-                for (ipAddress in ipAddresses) {
-                    logger.debug("  IP $ipAddress")
+                for (inetAddress in inetAddresses) {
+                    logger.debug("  IP ${inetAddress.hostAddress}")
                 }
             }
         }
