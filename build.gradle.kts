@@ -5,7 +5,7 @@ plugins {
     id("jacoco")
     alias(libs.plugins.git.version) // https://stackoverflow.com/a/71212144
     alias(libs.plugins.sonatype.maven.central)
-    alias(libs.plugins.gradleup.nmcp)
+    alias(libs.plugins.gradleup.nmcp.aggregation)
 }
 
 java {
