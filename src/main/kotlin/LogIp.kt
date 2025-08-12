@@ -39,7 +39,7 @@ object LogIp {
     }
 
     fun getAddresses(
-        logger: Logger = LoggerFactory.getLogger(LogIp::class.java),
+        logger: Logger? = null,
         excludeInterfaces: List<String> = defaultExcludeInterfaces,
         excludeDownInterfaces: Boolean = true,
     ): List<String> {
@@ -55,7 +55,7 @@ object LogIp {
     }
 
     fun getInterfaceNames(
-        logger: Logger = LoggerFactory.getLogger(LogIp::class.java),
+        logger: Logger? = null,
         excludeInterfaces: List<String> = defaultExcludeInterfaces,
         excludeDownInterfaces: Boolean = true,
     ): List<String> {
@@ -68,7 +68,7 @@ object LogIp {
     }
 
     fun getInterfaces(
-        logger: Logger = LoggerFactory.getLogger(LogIp::class.java),
+        logger: Logger? = null,
         excludeInterfaces: List<String> = defaultExcludeInterfaces,
         excludeDownInterfaces: Boolean = true,
     ): List<NetworkInterface> {
@@ -76,14 +76,14 @@ object LogIp {
         try {
             val interfaces = NetworkInterface.getNetworkInterfaces()
             if (interfaces == null) {
-                logger.warn("No network interfaces found")
+                logger?.warn("No network interfaces found")
                 return interfaceList
             }
             for (networkInterface in interfaces) {
                 var excluded = false
                 for (excludeInterface in excludeInterfaces) {
                     if (matchesInterfacePattern(networkInterface, excludeInterface)) {
-                        logger.debug(
+                        logger?.debug(
                             "Excluding interface ${networkInterface.name} (${networkInterface.displayName}) - matches exclusion pattern '$excludeInterface'",
                         )
                         excluded = true
@@ -94,20 +94,20 @@ object LogIp {
                     continue
                 }
                 if (networkInterface.isUp.not() && excludeDownInterfaces) {
-                    logger.debug("Excluding interface ${networkInterface.name} (${networkInterface.displayName}) - interface is down")
+                    logger?.debug("Excluding interface ${networkInterface.name} (${networkInterface.displayName}) - interface is down")
                     continue
                 }
-                logger.debug("Including interface ${networkInterface.name} (${networkInterface.displayName})")
+                logger?.debug("Including interface ${networkInterface.name} (${networkInterface.displayName})")
                 interfaceList.add(networkInterface)
             }
         } catch (e: SocketException) {
-            logger.error("Error getting network interfaces", e)
+            logger?.error("Error getting network interfaces", e)
         }
         return interfaceList
     }
 
     fun getInterfaceNameAddressMap(
-        logger: Logger = LoggerFactory.getLogger(LogIp::class.java),
+        logger: Logger? = null,
         excludeInterfaces: List<String> = defaultExcludeInterfaces,
         excludeDownInterfaces: Boolean = true,
     ): Map<String, List<String>> {
@@ -121,7 +121,7 @@ object LogIp {
     }
 
     fun getInterfacesMatching(
-        logger: Logger = LoggerFactory.getLogger(LogIp::class.java),
+        logger: Logger? = null,
         includeInterfaces: List<String>,
         excludeDownInterfaces: Boolean = true,
     ): List<NetworkInterface> {
@@ -129,14 +129,14 @@ object LogIp {
         try {
             val interfaces = NetworkInterface.getNetworkInterfaces()
             if (interfaces == null) {
-                logger.warn("No network interfaces found")
+                logger?.warn("No network interfaces found")
                 return interfaceList
             }
             for (networkInterface in interfaces) {
                 var matched = false
                 for (includeInterface in includeInterfaces) {
                     if (matchesInterfacePattern(networkInterface, includeInterface)) {
-                        logger.debug(
+                        logger?.debug(
                             "Interface ${networkInterface.name} (${networkInterface.displayName}) matches inclusion pattern '$includeInterface'",
                         )
                         matched = true
@@ -144,28 +144,28 @@ object LogIp {
                     }
                 }
                 if (!matched) {
-                    logger.debug(
+                    logger?.debug(
                         "Skipping interface ${networkInterface.name} (${networkInterface.displayName}) - no matching inclusion pattern",
                     )
                     continue
                 }
                 if (networkInterface.isUp.not() && excludeDownInterfaces) {
-                    logger.debug(
+                    logger?.debug(
                         "Excluding matched interface ${networkInterface.name} (${networkInterface.displayName}) - interface is down",
                     )
                     continue
                 }
-                logger.debug("Including matched interface ${networkInterface.name} (${networkInterface.displayName})")
+                logger?.debug("Including matched interface ${networkInterface.name} (${networkInterface.displayName})")
                 interfaceList.add(networkInterface)
             }
         } catch (e: SocketException) {
-            logger.error("Error getting network interfaces", e)
+            logger?.error("Error getting network interfaces", e)
         }
         return interfaceList
     }
 
     fun getInterfaceNamesMatching(
-        logger: Logger = LoggerFactory.getLogger(LogIp::class.java),
+        logger: Logger? = null,
         includeInterfaces: List<String>,
         excludeDownInterfaces: Boolean = true,
     ): List<String> {
@@ -178,7 +178,7 @@ object LogIp {
     }
 
     fun getAddressesMatching(
-        logger: Logger = LoggerFactory.getLogger(LogIp::class.java),
+        logger: Logger? = null,
         includeInterfaces: List<String>,
         excludeDownInterfaces: Boolean = true,
     ): List<String> {
@@ -194,7 +194,7 @@ object LogIp {
     }
 
     fun getInterfaceNameAddressMapMatching(
-        logger: Logger = LoggerFactory.getLogger(LogIp::class.java),
+        logger: Logger? = null,
         includeInterfaces: List<String>,
         excludeDownInterfaces: Boolean = true,
     ): Map<String, List<String>> {
