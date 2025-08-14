@@ -48,16 +48,14 @@ gitVersioning.apply {
     }
 }
 
-// see: https://github.com/vanniktech/gradle-maven-publish-plugin/issues/747#issuecomment-2066762725
-// and: https://github.com/GradleUp/nmcp
 nmcpAggregation {
     val props = project.properties
     centralPortal {
         username = props["centralPortalToken"] as String? ?: ""
         password = props["centralPortalPassword"] as String? ?: ""
-        // or if you want to publish automatically
         publishingType = "AUTOMATIC"
     }
+    publishAllProjectsProbablyBreakingProjectIsolation()
 }
 
 // see: https://vanniktech.github.io/gradle-maven-publish-plugin/central/#configuring-the-pom
