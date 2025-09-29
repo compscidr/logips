@@ -1,5 +1,6 @@
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.slf4j.event.Level
 import java.net.NetworkInterface
 import java.net.SocketException
 
@@ -23,16 +24,19 @@ object LogIp {
         logger: Logger = LoggerFactory.getLogger(LogIp::class.java),
         excludeInterfaces: List<String> = defaultExcludeInterfaces,
         excludeDownInterfaces: Boolean = false,
+        logLevel: Level = Level.TRACE,
+        logWarning: Boolean = true,
+        logError: Boolean = true,
     ) {
-        val interfaces = getInterfaces(logger, excludeInterfaces, excludeDownInterfaces)
+        val interfaces = getInterfaces(logger, excludeInterfaces, excludeDownInterfaces, logLevel, logWarning, logError)
         for (networkInterface in interfaces) {
-            logger.debug("Interface ${networkInterface.name} (${networkInterface.displayName})")
+            logger.atLevel(logLevel).log("Interface ${networkInterface.name} (${networkInterface.displayName})")
             val inetAddresses = networkInterface.inetAddresses.toList()
             if (inetAddresses.isEmpty()) {
-                logger.debug("  No ips")
+                logger.atLevel(logLevel).log("  No ips")
             } else {
                 for (inetAddress in inetAddresses) {
-                    logger.debug("  IP ${inetAddress.hostAddress}")
+                    logger.atLevel(logLevel).log("  IP ${inetAddress.hostAddress}")
                 }
             }
         }
@@ -71,19 +75,24 @@ object LogIp {
         logger: Logger? = null,
         excludeInterfaces: List<String> = defaultExcludeInterfaces,
         excludeDownInterfaces: Boolean = true,
+        logLevel: Level = Level.TRACE,
+        logWarning: Boolean = true,
+        logError: Boolean = true,
     ): List<NetworkInterface> {
         val interfaceList = mutableListOf<NetworkInterface>()
         try {
             val interfaces = NetworkInterface.getNetworkInterfaces()
             if (interfaces == null) {
-                logger?.warn("No network interfaces found")
+                if (logWarning) {
+                    logger?.warn("No network interfaces found")
+                }
                 return interfaceList
             }
             for (networkInterface in interfaces) {
                 var excluded = false
                 for (excludeInterface in excludeInterfaces) {
                     if (matchesInterfacePattern(networkInterface, excludeInterface)) {
-                        logger?.debug(
+                        logger?.atLevel(logLevel)?.log(
                             "Excluding interface ${networkInterface.name} (${networkInterface.displayName}) - matches exclusion pattern '$excludeInterface'",
                         )
                         excluded = true
@@ -94,14 +103,19 @@ object LogIp {
                     continue
                 }
                 if (networkInterface.isUp.not() && excludeDownInterfaces) {
-                    logger?.debug("Excluding interface ${networkInterface.name} (${networkInterface.displayName}) - interface is down")
+                    logger
+                        ?.atLevel(
+                            logLevel,
+                        )?.log("Excluding interface ${networkInterface.name} (${networkInterface.displayName}) - interface is down")
                     continue
                 }
-                logger?.debug("Including interface ${networkInterface.name} (${networkInterface.displayName})")
+                logger?.atLevel(logLevel)?.log("Including interface ${networkInterface.name} (${networkInterface.displayName})")
                 interfaceList.add(networkInterface)
             }
         } catch (e: SocketException) {
-            logger?.error("Error getting network interfaces", e)
+            if (logError) {
+                logger?.error("Error getting network interfaces", e)
+            }
         }
         return interfaceList
     }
@@ -124,19 +138,24 @@ object LogIp {
         logger: Logger? = null,
         includeInterfaces: List<String>,
         excludeDownInterfaces: Boolean = true,
+        logLevel: Level = Level.TRACE,
+        logWarning: Boolean = true,
+        logError: Boolean = true,
     ): List<NetworkInterface> {
         val interfaceList = mutableListOf<NetworkInterface>()
         try {
             val interfaces = NetworkInterface.getNetworkInterfaces()
             if (interfaces == null) {
-                logger?.warn("No network interfaces found")
+                if (logWarning) {
+                    logger?.warn("No network interfaces found")
+                }
                 return interfaceList
             }
             for (networkInterface in interfaces) {
                 var matched = false
                 for (includeInterface in includeInterfaces) {
                     if (matchesInterfacePattern(networkInterface, includeInterface)) {
-                        logger?.debug(
+                        logger?.atLevel(logLevel)?.log(
                             "Interface ${networkInterface.name} (${networkInterface.displayName}) matches inclusion pattern '$includeInterface'",
                         )
                         matched = true
@@ -144,22 +163,24 @@ object LogIp {
                     }
                 }
                 if (!matched) {
-                    logger?.debug(
+                    logger?.atLevel(logLevel)?.log(
                         "Skipping interface ${networkInterface.name} (${networkInterface.displayName}) - no matching inclusion pattern",
                     )
                     continue
                 }
                 if (networkInterface.isUp.not() && excludeDownInterfaces) {
-                    logger?.debug(
+                    logger?.atLevel(logLevel)?.log(
                         "Excluding matched interface ${networkInterface.name} (${networkInterface.displayName}) - interface is down",
                     )
                     continue
                 }
-                logger?.debug("Including matched interface ${networkInterface.name} (${networkInterface.displayName})")
+                logger?.atLevel(logLevel)?.log("Including matched interface ${networkInterface.name} (${networkInterface.displayName})")
                 interfaceList.add(networkInterface)
             }
         } catch (e: SocketException) {
-            logger?.error("Error getting network interfaces", e)
+            if (logError) {
+                logger?.error("Error getting network interfaces", e)
+            }
         }
         return interfaceList
     }
