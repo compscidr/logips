@@ -10,8 +10,10 @@ import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.slf4j.event.Level
+import java.net.InetAddress
 import java.net.NetworkInterface
 import java.net.SocketException
+import java.util.Collections
 
 class LogIpTest {
     private val logger = LoggerFactory.getLogger(LogIpTest::class.java)
@@ -734,5 +736,163 @@ class LogIpTest {
         val map = LogIp.getInterfaceNameAddressMapMatching(logger = null, includeInterfaces = listOf("lo"))
         // Should work fine
         assertTrue(map.isNotEmpty() || map.isEmpty()) // Just verify no exception
+    }
+
+    @Test fun testLogAllIpAddressesWithInterfaceWithNoIpAddresses() {
+        // Mock NetworkInterface with no IP addresses to trigger lines 35-36
+        mockkStatic(NetworkInterface::class)
+
+        val mockInterface = mockk<NetworkInterface>(relaxed = true)
+        every { mockInterface.name } returns "test0"
+        every { mockInterface.displayName } returns "Test Interface"
+        every { mockInterface.isUp } returns true
+        every { mockInterface.inetAddresses } returns Collections.emptyEnumeration()
+
+        every { NetworkInterface.getNetworkInterfaces() } returns
+            Collections.enumeration(listOf(mockInterface))
+
+        val mockLogger = mockk<Logger>(relaxed = true)
+
+        // Call logAllIpAddresses
+        LogIp.logAllIpAddresses(logger = mockLogger, excludeInterfaces = emptyList())
+
+        // Verify that the "No ips" message was logged (line 36)
+        verify(atLeast = 1) { mockLogger.atLevel(any()).log("  No ips") }
+    }
+
+    @Test fun testGetInterfacesWithDownInterfaceAndExcludeDownTrueWithLogging() {
+        // Mock a down interface to trigger lines 106-109
+        mockkStatic(NetworkInterface::class)
+
+        val mockDownInterface = mockk<NetworkInterface>(relaxed = true)
+        every { mockDownInterface.name } returns "down0"
+        every { mockDownInterface.displayName } returns "Down Interface"
+        every { mockDownInterface.isUp } returns false
+
+        val mockUpInterface = mockk<NetworkInterface>(relaxed = true)
+        every { mockUpInterface.name } returns "up0"
+        every { mockUpInterface.displayName } returns "Up Interface"
+        every { mockUpInterface.isUp } returns true
+
+        every { NetworkInterface.getNetworkInterfaces() } returns
+            Collections.enumeration(listOf(mockDownInterface, mockUpInterface))
+
+        val mockLogger = mockk<Logger>(relaxed = true)
+
+        // Call with excludeDownInterfaces = true
+        val interfaces =
+            LogIp.getInterfaces(
+                logger = mockLogger,
+                excludeInterfaces = emptyList(),
+                excludeDownInterfaces = true,
+            )
+
+        // Should only return the up interface
+        assertTrue(interfaces.size == 1)
+        assertTrue(interfaces[0].name == "up0")
+
+        // Verify the down interface exclusion was logged (lines 106-109)
+        verify(atLeast = 1) {
+            mockLogger.atLevel(any()).log(match { it.contains("Excluding interface down0") && it.contains("interface is down") })
+        }
+    }
+
+    @Test fun testGetInterfacesMatchingWithDownInterfaceAndExcludeDownTrueWithLogging() {
+        // Mock a down interface to trigger lines 171-175
+        mockkStatic(NetworkInterface::class)
+
+        val mockDownInterface = mockk<NetworkInterface>(relaxed = true)
+        every { mockDownInterface.name } returns "test0"
+        every { mockDownInterface.displayName } returns "Test Down Interface"
+        every { mockDownInterface.isUp } returns false
+
+        val mockUpInterface = mockk<NetworkInterface>(relaxed = true)
+        every { mockUpInterface.name } returns "test1"
+        every { mockUpInterface.displayName } returns "Test Up Interface"
+        every { mockUpInterface.isUp } returns true
+
+        every { NetworkInterface.getNetworkInterfaces() } returns
+            Collections.enumeration(listOf(mockDownInterface, mockUpInterface))
+
+        val mockLogger = mockk<Logger>(relaxed = true)
+
+        // Call with includeInterfaces that matches both, excludeDownInterfaces = true
+        val interfaces =
+            LogIp.getInterfacesMatching(
+                logger = mockLogger,
+                includeInterfaces = listOf("test"),
+                excludeDownInterfaces = true,
+            )
+
+        // Should only return the up interface
+        assertTrue(interfaces.size == 1)
+        assertTrue(interfaces[0].name == "test1")
+
+        // Verify the down interface exclusion was logged (lines 171-175)
+        verify(atLeast = 1) {
+            mockLogger
+                .atLevel(any())
+                .log(match { it.contains("Excluding matched interface test0") && it.contains("interface is down") })
+        }
+    }
+
+    @Test fun testGetInterfacesWithDownInterfaceExcludeDownTrueAndNullLogger() {
+        // Test lines 106-109 with null logger
+        mockkStatic(NetworkInterface::class)
+
+        val mockDownInterface = mockk<NetworkInterface>(relaxed = true)
+        every { mockDownInterface.name } returns "down0"
+        every { mockDownInterface.displayName } returns "Down Interface"
+        every { mockDownInterface.isUp } returns false
+
+        val mockUpInterface = mockk<NetworkInterface>(relaxed = true)
+        every { mockUpInterface.name } returns "up0"
+        every { mockUpInterface.displayName } returns "Up Interface"
+        every { mockUpInterface.isUp } returns true
+
+        every { NetworkInterface.getNetworkInterfaces() } returns
+            Collections.enumeration(listOf(mockDownInterface, mockUpInterface))
+
+        // Call with null logger and excludeDownInterfaces = true
+        val interfaces =
+            LogIp.getInterfaces(
+                logger = null,
+                excludeInterfaces = emptyList(),
+                excludeDownInterfaces = true,
+            )
+
+        // Should only return the up interface, no exception
+        assertTrue(interfaces.size == 1)
+        assertTrue(interfaces[0].name == "up0")
+    }
+
+    @Test fun testGetInterfacesMatchingWithDownInterfaceExcludeDownTrueAndNullLogger() {
+        // Test lines 171-175 with null logger
+        mockkStatic(NetworkInterface::class)
+
+        val mockDownInterface = mockk<NetworkInterface>(relaxed = true)
+        every { mockDownInterface.name } returns "test0"
+        every { mockDownInterface.displayName } returns "Test Down Interface"
+        every { mockDownInterface.isUp } returns false
+
+        val mockUpInterface = mockk<NetworkInterface>(relaxed = true)
+        every { mockUpInterface.name } returns "test1"
+        every { mockUpInterface.displayName } returns "Test Up Interface"
+        every { mockUpInterface.isUp } returns true
+
+        every { NetworkInterface.getNetworkInterfaces() } returns
+            Collections.enumeration(listOf(mockDownInterface, mockUpInterface))
+
+        // Call with null logger and excludeDownInterfaces = true
+        val interfaces =
+            LogIp.getInterfacesMatching(
+                logger = null,
+                includeInterfaces = listOf("test"),
+                excludeDownInterfaces = true,
+            )
+
+        // Should only return the up interface, no exception
+        assertTrue(interfaces.size == 1)
+        assertTrue(interfaces[0].name == "test1")
     }
 }
