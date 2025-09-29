@@ -1,15 +1,26 @@
+import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkStatic
+import io.mockk.unmockkAll
 import io.mockk.verify
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.slf4j.event.Level
+import java.net.NetworkInterface
+import java.net.SocketException
 
 class LogIpTest {
     private val logger = LoggerFactory.getLogger(LogIpTest::class.java)
     // todo: make a test that ads a lo filter and ensures that the loopback ip isn't included
+
+    @AfterEach
+    fun cleanup() {
+        unmockkAll()
+    }
 
     @Test fun testLogIp() {
         LogIp.logAllIpAddresses()
@@ -386,5 +397,184 @@ class LogIpTest {
             )
             verify(atLeast = 1) { mockLogger.atLevel(level) }
         }
+    }
+
+    @Test fun testGetInterfacesWithNullInterfacesAndLogWarningTrue() {
+        // Mock NetworkInterface.getNetworkInterfaces() to return null
+        mockkStatic(NetworkInterface::class)
+        every { NetworkInterface.getNetworkInterfaces() } returns null
+
+        val mockLogger = mockk<Logger>(relaxed = true)
+
+        // Call with logWarning = true (default)
+        val interfaces = LogIp.getInterfaces(logger = mockLogger, logWarning = true)
+
+        // Should return empty list
+        assertTrue(interfaces.isEmpty())
+
+        // Verify warn was called
+        verify(exactly = 1) { mockLogger.warn("No network interfaces found") }
+    }
+
+    @Test fun testGetInterfacesWithNullInterfacesAndLogWarningFalse() {
+        // Mock NetworkInterface.getNetworkInterfaces() to return null
+        mockkStatic(NetworkInterface::class)
+        every { NetworkInterface.getNetworkInterfaces() } returns null
+
+        val mockLogger = mockk<Logger>(relaxed = true)
+
+        // Call with logWarning = false
+        val interfaces = LogIp.getInterfaces(logger = mockLogger, logWarning = false)
+
+        // Should return empty list
+        assertTrue(interfaces.isEmpty())
+
+        // Verify warn was NOT called
+        verify(exactly = 0) { mockLogger.warn(any<String>()) }
+    }
+
+    @Test fun testGetInterfacesMatchingWithNullInterfacesAndLogWarningTrue() {
+        // Mock NetworkInterface.getNetworkInterfaces() to return null
+        mockkStatic(NetworkInterface::class)
+        every { NetworkInterface.getNetworkInterfaces() } returns null
+
+        val mockLogger = mockk<Logger>(relaxed = true)
+
+        // Call with logWarning = true (default)
+        val interfaces =
+            LogIp.getInterfacesMatching(
+                logger = mockLogger,
+                includeInterfaces = listOf("lo"),
+                logWarning = true,
+            )
+
+        // Should return empty list
+        assertTrue(interfaces.isEmpty())
+
+        // Verify warn was called
+        verify(exactly = 1) { mockLogger.warn("No network interfaces found") }
+    }
+
+    @Test fun testGetInterfacesMatchingWithNullInterfacesAndLogWarningFalse() {
+        // Mock NetworkInterface.getNetworkInterfaces() to return null
+        mockkStatic(NetworkInterface::class)
+        every { NetworkInterface.getNetworkInterfaces() } returns null
+
+        val mockLogger = mockk<Logger>(relaxed = true)
+
+        // Call with logWarning = false
+        val interfaces =
+            LogIp.getInterfacesMatching(
+                logger = mockLogger,
+                includeInterfaces = listOf("lo"),
+                logWarning = false,
+            )
+
+        // Should return empty list
+        assertTrue(interfaces.isEmpty())
+
+        // Verify warn was NOT called
+        verify(exactly = 0) { mockLogger.warn(any<String>()) }
+    }
+
+    @Test fun testGetInterfacesWithSocketExceptionAndLogErrorTrue() {
+        // Mock NetworkInterface.getNetworkInterfaces() to throw SocketException
+        mockkStatic(NetworkInterface::class)
+        every { NetworkInterface.getNetworkInterfaces() } throws SocketException("Test exception")
+
+        val mockLogger = mockk<Logger>(relaxed = true)
+
+        // Call with logError = true (default)
+        val interfaces = LogIp.getInterfaces(logger = mockLogger, logError = true)
+
+        // Should return empty list
+        assertTrue(interfaces.isEmpty())
+
+        // Verify error was called with the exception
+        verify(exactly = 1) { mockLogger.error("Error getting network interfaces", any<SocketException>()) }
+    }
+
+    @Test fun testGetInterfacesWithSocketExceptionAndLogErrorFalse() {
+        // Mock NetworkInterface.getNetworkInterfaces() to throw SocketException
+        mockkStatic(NetworkInterface::class)
+        every { NetworkInterface.getNetworkInterfaces() } throws SocketException("Test exception")
+
+        val mockLogger = mockk<Logger>(relaxed = true)
+
+        // Call with logError = false
+        val interfaces = LogIp.getInterfaces(logger = mockLogger, logError = false)
+
+        // Should return empty list
+        assertTrue(interfaces.isEmpty())
+
+        // Verify error was NOT called
+        verify(exactly = 0) { mockLogger.error(any<String>(), any<Throwable>()) }
+    }
+
+    @Test fun testGetInterfacesMatchingWithSocketExceptionAndLogErrorTrue() {
+        // Mock NetworkInterface.getNetworkInterfaces() to throw SocketException
+        mockkStatic(NetworkInterface::class)
+        every { NetworkInterface.getNetworkInterfaces() } throws SocketException("Test exception")
+
+        val mockLogger = mockk<Logger>(relaxed = true)
+
+        // Call with logError = true (default)
+        val interfaces =
+            LogIp.getInterfacesMatching(
+                logger = mockLogger,
+                includeInterfaces = listOf("lo"),
+                logError = true,
+            )
+
+        // Should return empty list
+        assertTrue(interfaces.isEmpty())
+
+        // Verify error was called with the exception
+        verify(exactly = 1) { mockLogger.error("Error getting network interfaces", any<SocketException>()) }
+    }
+
+    @Test fun testGetInterfacesMatchingWithSocketExceptionAndLogErrorFalse() {
+        // Mock NetworkInterface.getNetworkInterfaces() to throw SocketException
+        mockkStatic(NetworkInterface::class)
+        every { NetworkInterface.getNetworkInterfaces() } throws SocketException("Test exception")
+
+        val mockLogger = mockk<Logger>(relaxed = true)
+
+        // Call with logError = false
+        val interfaces =
+            LogIp.getInterfacesMatching(
+                logger = mockLogger,
+                includeInterfaces = listOf("lo"),
+                logError = false,
+            )
+
+        // Should return empty list
+        assertTrue(interfaces.isEmpty())
+
+        // Verify error was NOT called
+        verify(exactly = 0) { mockLogger.error(any<String>(), any<Throwable>()) }
+    }
+
+    @Test fun testLogAllIpAddressesPassesThroughLogWarningAndLogError() {
+        // Mock NetworkInterface.getNetworkInterfaces() to return null to trigger warning branch
+        mockkStatic(NetworkInterface::class)
+        every { NetworkInterface.getNetworkInterfaces() } returns null
+
+        val mockLogger = mockk<Logger>(relaxed = true)
+
+        // Test with logWarning = true and logError = true
+        LogIp.logAllIpAddresses(logger = mockLogger, logWarning = true, logError = true)
+        verify(exactly = 1) { mockLogger.warn("No network interfaces found") }
+
+        // Reset mock
+        unmockkAll()
+        mockkStatic(NetworkInterface::class)
+        every { NetworkInterface.getNetworkInterfaces() } returns null
+
+        val mockLogger2 = mockk<Logger>(relaxed = true)
+
+        // Test with logWarning = false
+        LogIp.logAllIpAddresses(logger = mockLogger2, logWarning = false, logError = false)
+        verify(exactly = 0) { mockLogger2.warn(any<String>()) }
     }
 }
