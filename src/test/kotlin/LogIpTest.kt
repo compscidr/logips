@@ -1,6 +1,9 @@
+import io.mockk.mockk
+import io.mockk.verify
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.slf4j.event.Level
 
@@ -244,5 +247,144 @@ class LogIpTest {
             logWarning = true,
             logError = true,
         )
+    }
+
+    @Test fun testLogAllIpAddressesUsesCorrectLogLevel() {
+        // Mock logger to verify the correct log level is used
+        val mockLogger = mockk<Logger>(relaxed = true)
+
+        // Test with INFO level
+        LogIp.logAllIpAddresses(logger = mockLogger, logLevel = Level.INFO)
+
+        // Verify that atLevel was called with INFO
+        verify(atLeast = 1) { mockLogger.atLevel(Level.INFO) }
+    }
+
+    @Test fun testLogAllIpAddressesUsesTraceByDefault() {
+        // Mock logger to verify TRACE is used by default
+        val mockLogger = mockk<Logger>(relaxed = true)
+
+        // Call without specifying logLevel
+        LogIp.logAllIpAddresses(logger = mockLogger)
+
+        // Verify that atLevel was called with TRACE (the default)
+        verify(atLeast = 1) { mockLogger.atLevel(Level.TRACE) }
+    }
+
+    @Test fun testGetInterfacesUsesCorrectLogLevel() {
+        // Mock logger to verify the correct log level is used
+        val mockLogger = mockk<Logger>(relaxed = true)
+
+        // Test with WARN level
+        LogIp.getInterfaces(logger = mockLogger, logLevel = Level.WARN)
+
+        // Verify that atLevel was called with WARN
+        verify(atLeast = 1) { mockLogger.atLevel(Level.WARN) }
+    }
+
+    @Test fun testGetInterfacesWithLogWarningFalse() {
+        // Mock logger to verify warn is NOT called when logWarning is false
+        val mockLogger = mockk<Logger>(relaxed = true)
+
+        // Call with logWarning = false
+        LogIp.getInterfaces(logger = mockLogger, logWarning = false)
+
+        // Verify warn was never called
+        verify(exactly = 0) { mockLogger.warn(any<String>()) }
+    }
+
+    @Test fun testGetInterfacesWithLogErrorFalse() {
+        // Mock logger to verify error is NOT called when logError is false
+        val mockLogger = mockk<Logger>(relaxed = true)
+
+        // Call with logError = false
+        LogIp.getInterfaces(logger = mockLogger, logError = false)
+
+        // Verify error was never called (with any parameters)
+        verify(exactly = 0) { mockLogger.error(any<String>(), any<Throwable>()) }
+        verify(exactly = 0) { mockLogger.error(any<String>()) }
+    }
+
+    @Test fun testGetInterfacesMatchingUsesCorrectLogLevel() {
+        // Mock logger to verify the correct log level is used
+        val mockLogger = mockk<Logger>(relaxed = true)
+
+        // Test with ERROR level
+        LogIp.getInterfacesMatching(
+            logger = mockLogger,
+            includeInterfaces = listOf("lo"),
+            logLevel = Level.ERROR,
+        )
+
+        // Verify that atLevel was called with ERROR
+        verify(atLeast = 1) { mockLogger.atLevel(Level.ERROR) }
+    }
+
+    @Test fun testGetInterfacesMatchingWithLogWarningFalse() {
+        // Mock logger to verify warn is NOT called when logWarning is false
+        val mockLogger = mockk<Logger>(relaxed = true)
+
+        // Call with logWarning = false
+        LogIp.getInterfacesMatching(
+            logger = mockLogger,
+            includeInterfaces = listOf("lo"),
+            logWarning = false,
+        )
+
+        // Verify warn was never called
+        verify(exactly = 0) { mockLogger.warn(any<String>()) }
+    }
+
+    @Test fun testGetInterfacesMatchingWithLogErrorFalse() {
+        // Mock logger to verify error is NOT called when logError is false
+        val mockLogger = mockk<Logger>(relaxed = true)
+
+        // Call with logError = false
+        LogIp.getInterfacesMatching(
+            logger = mockLogger,
+            includeInterfaces = listOf("lo"),
+            logError = false,
+        )
+
+        // Verify error was never called
+        verify(exactly = 0) { mockLogger.error(any<String>(), any<Throwable>()) }
+        verify(exactly = 0) { mockLogger.error(any<String>()) }
+    }
+
+    @Test fun testAllLogLevelsWithLogAllIpAddresses() {
+        // Test that each log level is correctly passed through
+        val levels = listOf(Level.TRACE, Level.DEBUG, Level.INFO, Level.WARN, Level.ERROR)
+
+        levels.forEach { level ->
+            val mockLogger = mockk<Logger>(relaxed = true)
+            LogIp.logAllIpAddresses(logger = mockLogger, logLevel = level)
+            verify(atLeast = 1) { mockLogger.atLevel(level) }
+        }
+    }
+
+    @Test fun testAllLogLevelsWithGetInterfaces() {
+        // Test that each log level is correctly passed through
+        val levels = listOf(Level.TRACE, Level.DEBUG, Level.INFO, Level.WARN, Level.ERROR)
+
+        levels.forEach { level ->
+            val mockLogger = mockk<Logger>(relaxed = true)
+            LogIp.getInterfaces(logger = mockLogger, logLevel = level)
+            verify(atLeast = 1) { mockLogger.atLevel(level) }
+        }
+    }
+
+    @Test fun testAllLogLevelsWithGetInterfacesMatching() {
+        // Test that each log level is correctly passed through
+        val levels = listOf(Level.TRACE, Level.DEBUG, Level.INFO, Level.WARN, Level.ERROR)
+
+        levels.forEach { level ->
+            val mockLogger = mockk<Logger>(relaxed = true)
+            LogIp.getInterfacesMatching(
+                logger = mockLogger,
+                includeInterfaces = listOf("lo"),
+                logLevel = level,
+            )
+            verify(atLeast = 1) { mockLogger.atLevel(level) }
+        }
     }
 }
