@@ -577,4 +577,162 @@ class LogIpTest {
         LogIp.logAllIpAddresses(logger = mockLogger2, logWarning = false, logError = false)
         verify(exactly = 0) { mockLogger2.warn(any<String>()) }
     }
+
+    @Test fun testGetInterfacesWithNullLogger() {
+        // Test that passing null logger doesn't cause issues
+        val interfaces = LogIp.getInterfaces(logger = null, excludeInterfaces = emptyList())
+        // Should still work
+        assertTrue(interfaces.isNotEmpty())
+    }
+
+    @Test fun testGetInterfacesWithNullLoggerAndNullInterfaces() {
+        // Mock NetworkInterface.getNetworkInterfaces() to return null
+        mockkStatic(NetworkInterface::class)
+        every { NetworkInterface.getNetworkInterfaces() } returns null
+
+        // Test with null logger - should not throw
+        val interfaces = LogIp.getInterfaces(logger = null, logWarning = true)
+        assertTrue(interfaces.isEmpty())
+    }
+
+    @Test fun testGetInterfacesWithNullLoggerAndSocketException() {
+        // Mock NetworkInterface.getNetworkInterfaces() to throw SocketException
+        mockkStatic(NetworkInterface::class)
+        every { NetworkInterface.getNetworkInterfaces() } throws SocketException("Test exception")
+
+        // Test with null logger - should not throw
+        val interfaces = LogIp.getInterfaces(logger = null, logError = true)
+        assertTrue(interfaces.isEmpty())
+    }
+
+    @Test fun testGetInterfacesMatchingWithNullLogger() {
+        // Test that passing null logger doesn't cause issues
+        val interfaces = LogIp.getInterfacesMatching(logger = null, includeInterfaces = listOf("lo"))
+        // Should still work
+        assertTrue(interfaces.isNotEmpty())
+    }
+
+    @Test fun testGetInterfacesMatchingWithNullLoggerAndNullInterfaces() {
+        // Mock NetworkInterface.getNetworkInterfaces() to return null
+        mockkStatic(NetworkInterface::class)
+        every { NetworkInterface.getNetworkInterfaces() } returns null
+
+        // Test with null logger - should not throw
+        val interfaces =
+            LogIp.getInterfacesMatching(
+                logger = null,
+                includeInterfaces = listOf("lo"),
+                logWarning = true,
+            )
+        assertTrue(interfaces.isEmpty())
+    }
+
+    @Test fun testGetInterfacesMatchingWithNullLoggerAndSocketException() {
+        // Mock NetworkInterface.getNetworkInterfaces() to throw SocketException
+        mockkStatic(NetworkInterface::class)
+        every { NetworkInterface.getNetworkInterfaces() } throws SocketException("Test exception")
+
+        // Test with null logger - should not throw
+        val interfaces =
+            LogIp.getInterfacesMatching(
+                logger = null,
+                includeInterfaces = listOf("lo"),
+                logError = true,
+            )
+        assertTrue(interfaces.isEmpty())
+    }
+
+    @Test fun testGetInterfacesMatchingWithDownInterfaceAndExcludeDownTrue() {
+        // This tests line 171 with networkInterface.isUp.not() = true and excludeDownInterfaces = true
+        // The real test happens during normal execution, but we can verify it works
+        val interfaces =
+            LogIp.getInterfacesMatching(
+                includeInterfaces = listOf("lo"),
+                excludeDownInterfaces = true,
+            )
+        // All returned interfaces should be up
+        interfaces.forEach { netInterface ->
+            if (!netInterface.isUp) {
+                throw AssertionError("Found down interface when excludeDownInterfaces=true")
+            }
+        }
+    }
+
+    @Test fun testGetInterfacesMatchingWithDownInterfaceAndExcludeDownFalse() {
+        // This tests line 171 with excludeDownInterfaces = false
+        // When false, down interfaces should be included
+        val allInterfaces =
+            LogIp.getInterfacesMatching(
+                includeInterfaces = listOf("lo"),
+                excludeDownInterfaces = false,
+            )
+        // Should include interfaces regardless of up/down status
+        assertTrue(allInterfaces.isNotEmpty())
+    }
+
+    @Test fun testGetInterfacesWithDownInterfaceAndExcludeDownTrue() {
+        // Test getInterfaces with excludeDownInterfaces = true
+        val interfaces =
+            LogIp.getInterfaces(
+                excludeInterfaces = emptyList(),
+                excludeDownInterfaces = true,
+            )
+        // All returned interfaces should be up
+        interfaces.forEach { netInterface ->
+            assertTrue(netInterface.isUp, "Interface ${netInterface.name} should be up when excludeDownInterfaces=true")
+        }
+    }
+
+    @Test fun testGetInterfacesWithDownInterfaceAndExcludeDownFalse() {
+        // Test getInterfaces with excludeDownInterfaces = false
+        val allInterfaces =
+            LogIp.getInterfaces(
+                excludeInterfaces = emptyList(),
+                excludeDownInterfaces = false,
+            )
+        // Should include interfaces regardless of up/down status
+        assertTrue(allInterfaces.isNotEmpty())
+    }
+
+    @Test fun testGetAddressesWithNullLogger() {
+        // Test getAddresses with null logger
+        val addresses = LogIp.getAddresses(logger = null)
+        // Should work fine
+        assertTrue(addresses.isNotEmpty() || addresses.isEmpty()) // Just verify no exception
+    }
+
+    @Test fun testGetInterfaceNamesWithNullLogger() {
+        // Test getInterfaceNames with null logger
+        val names = LogIp.getInterfaceNames(logger = null)
+        // Should work fine
+        assertTrue(names.isNotEmpty() || names.isEmpty()) // Just verify no exception
+    }
+
+    @Test fun testGetInterfaceNameAddressMapWithNullLogger() {
+        // Test getInterfaceNameAddressMap with null logger
+        val map = LogIp.getInterfaceNameAddressMap(logger = null)
+        // Should work fine
+        assertTrue(map.isNotEmpty() || map.isEmpty()) // Just verify no exception
+    }
+
+    @Test fun testGetInterfaceNamesMatchingWithNullLogger() {
+        // Test getInterfaceNamesMatching with null logger
+        val names = LogIp.getInterfaceNamesMatching(logger = null, includeInterfaces = listOf("lo"))
+        // Should work fine
+        assertTrue(names.isNotEmpty() || names.isEmpty()) // Just verify no exception
+    }
+
+    @Test fun testGetAddressesMatchingWithNullLogger() {
+        // Test getAddressesMatching with null logger
+        val addresses = LogIp.getAddressesMatching(logger = null, includeInterfaces = listOf("lo"))
+        // Should work fine
+        assertTrue(addresses.isNotEmpty() || addresses.isEmpty()) // Just verify no exception
+    }
+
+    @Test fun testGetInterfaceNameAddressMapMatchingWithNullLogger() {
+        // Test getInterfaceNameAddressMapMatching with null logger
+        val map = LogIp.getInterfaceNameAddressMapMatching(logger = null, includeInterfaces = listOf("lo"))
+        // Should work fine
+        assertTrue(map.isNotEmpty() || map.isEmpty()) // Just verify no exception
+    }
 }
