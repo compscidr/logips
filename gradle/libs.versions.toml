@@ -1,7 +1,7 @@
 [versions]
 kotlin = "2.3.0"
 kotlinter = "5.4.0"
-mockk = "1.14.7"
+mockk = "1.14.9"
 slf4j = "2.0.17"
 
 [libraries]
