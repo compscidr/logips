@@ -6,7 +6,7 @@ slf4j = "2.0.17"
 
 [libraries]
 junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api" }
-junit-bom = { module = "org.junit:junit-bom", version="6.0.2" }
+junit-bom = { module = "org.junit:junit-bom", version="6.0.3" }
 junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine" }
 junit-jupiter-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
