@@ -1,5 +1,5 @@
 [versions]
-kotlin = "2.3.20"
+kotlin = "2.3.21"
 kotlinter = "5.4.2"
 mockk = "1.14.9"
 slf4j = "2.0.17"
