@@ -2,7 +2,7 @@
 kotlin = "2.3.21"
 kotlinter = "5.4.2"
 mockk = "1.14.9"
-slf4j = "2.0.17"
+slf4j = "2.0.18"
 
 [libraries]
 junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api" }
