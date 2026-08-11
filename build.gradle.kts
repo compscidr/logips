@@ -8,13 +8,23 @@ plugins {
     alias(libs.plugins.gradleup.nmcp.aggregation)
 }
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
-}
-
 kotlin {
     jvmToolchain(21)
+}
+
+// Emit Java 11 bytecode for the published jar so consumers on JDK 11+ can use the
+// library (https://github.com/compscidr/logips/issues/83). -Xjdk-release links against
+// the JDK 11 API surface so use of newer APIs fails our build instead of consumers'.
+// Tests still compile and run on the JDK 21 toolchain.
+tasks.compileJava {
+    options.release = 11
+}
+
+tasks.compileKotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
+        freeCompilerArgs.add("-Xjdk-release=11")
+    }
 }
 
 tasks.jacocoTestReport {
