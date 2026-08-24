@@ -10,6 +10,18 @@ plugins {
 
 kotlin {
     jvmToolchain(21)
+
+    // Publish metadata and a stdlib dependency that older Kotlin compilers can read.
+    // Consumers pinned to an older compiler (notably Android Gradle Plugin 9.x, whose
+    // built-in Kotlin is 2.2.10) cannot read 2.4 metadata and fail to compile against
+    // us (see https://github.com/compscidr/bt-wifi-direct/pull/270). Same idea as the
+    // JDK 11 bytecode target below: build on the newest toolchain, publish for the
+    // oldest supported consumer.
+    coreLibrariesVersion = "2.2.10"
+    compilerOptions {
+        languageVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_2
+        apiVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_2
+    }
 }
 
 // Emit Java 11 bytecode for the published jar so consumers on JDK 11+ can use the
